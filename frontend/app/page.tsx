@@ -103,6 +103,8 @@ export default function SurveyorDashboard() {
   const [cameraActive, setCameraActive] = useState(false);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
+  const [gpsPoints, setGpsPoints] = useState<{ lat: number; lng: number }[]>([]);
+  const [gpsStatus, setGpsStatus] = useState<string>("");
   const wsRef = useRef<WebSocket | null>(null);
   const micCleanupRef = useRef<(() => void) | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -190,6 +192,74 @@ export default function SurveyorDashboard() {
       }
     } catch (err) {
       console.error("Map fetch error:", err);
+    }
+  }, []);
+
+  const recordGps = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsStatus("Geolocation not supported");
+      return;
+    }
+    setGpsStatus("Getting location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(6));
+        const lng = parseFloat(pos.coords.longitude.toFixed(6));
+        const accuracy = pos.coords.accuracy.toFixed(1);
+        setGpsPoints((prev) => [...prev, { lat, lng }]);
+        setGpsStatus(`Point recorded (±${accuracy}m)`);
+
+        const { api } = getBackendUrls();
+        fetch(`${api}/debug/record-point`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat, lng }),
+        }).catch(() => {});
+
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
+          const text = `I just recorded boundary point #${gpsPoints.length + 1} at GPS coordinates ${lat}, ${lng} (accuracy ±${accuracy}m). Please acknowledge this point.`;
+          ws.send(JSON.stringify({ type: "control", text }));
+          setConversation((prev) => [...prev, { role: "user", content: `📍 GPS Point #${gpsPoints.length + 1}: ${lat}, ${lng} (±${accuracy}m)` }]);
+          appendEvent("[gps] " + text);
+        }
+      },
+      (err) => {
+        setGpsStatus(`GPS error: ${err.message}`);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }, [gpsPoints, appendEvent]);
+
+  const calculateArea = useCallback(async () => {
+    const { api } = getBackendUrls();
+    try {
+      const res = await fetch(`${api}/debug/calculate-area`, { method: "POST" });
+      const data = await res.json();
+      if (data.status === "ok") {
+        const msg = `Area: ${data.area_sqm.toFixed(1)} sqm (${data.plots_600sqm.toFixed(2)} plots of 600sqm) from ${data.point_count} points`;
+        setConversation((prev) => [...prev, { role: "model", content: `📐 ${msg}` }]);
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "control", text: `The area calculation result is: ${msg}. Please explain this to the user.` }));
+        }
+      } else {
+        alert(data.message || "Need at least 3 points to calculate area.");
+      }
+    } catch (err) {
+      console.error("Area calc error:", err);
+    }
+  }, []);
+
+  const resetPoints = useCallback(async () => {
+    const { api } = getBackendUrls();
+    try {
+      await fetch(`${api}/debug/reset-points`, { method: "POST" });
+      setGpsPoints([]);
+      setGpsStatus("Points cleared");
+      setMapUrl(null);
+    } catch (err) {
+      console.error("Reset error:", err);
     }
   }, []);
 
@@ -391,6 +461,57 @@ export default function SurveyorDashboard() {
         </div>
         <canvas ref={canvasRef} className="hidden" width={640} height={480} aria-hidden />
 
+        {/* GPS controls */}
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={recordGps}
+              disabled={status !== "connected"}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
+            >
+              📍 Record GPS Point
+            </button>
+            <button
+              type="button"
+              onClick={calculateArea}
+              disabled={gpsPoints.length < 3}
+              className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-500 disabled:opacity-50"
+            >
+              📐 Calculate Area
+            </button>
+            <button
+              type="button"
+              onClick={fetchMap}
+              disabled={gpsPoints.length < 2}
+              className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500 disabled:opacity-50"
+            >
+              🗺️ Show Map
+            </button>
+            <button
+              type="button"
+              onClick={resetPoints}
+              disabled={gpsPoints.length === 0}
+              className="rounded-lg bg-zinc-700 px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-600 disabled:opacity-50"
+            >
+              Reset
+            </button>
+            <span className="text-sm text-zinc-400">
+              {gpsPoints.length} point{gpsPoints.length !== 1 ? "s" : ""} recorded
+            </span>
+            {gpsStatus && <span className="text-xs text-zinc-500">{gpsStatus}</span>}
+          </div>
+          {gpsPoints.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {gpsPoints.map((p, i) => (
+                <span key={i} className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400">
+                  #{i + 1}: {p.lat}, {p.lng}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Chat input */}
         <form
           className="mt-4 flex gap-2"
@@ -413,13 +534,6 @@ export default function SurveyorDashboard() {
             className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-black hover:bg-amber-500 disabled:opacity-50"
           >
             Send
-          </button>
-          <button
-            type="button"
-            onClick={fetchMap}
-            className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-500"
-          >
-            Show map
           </button>
         </form>
 
