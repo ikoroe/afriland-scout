@@ -1,0 +1,8 @@
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+websockets>=14,<15
+google-genai>=1.5,<2
+python-dotenv>=1,<2
+pyproj>=3.7,<4
+shapely>=2.0,<3
+google-cloud-aiplatform>=1.74,<2
