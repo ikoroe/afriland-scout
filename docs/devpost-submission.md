@@ -1,6 +1,5 @@
 # Afriland Scout — Devpost Submission
 
-> Copy each section below into the corresponding Devpost field.
 
 ---
 
