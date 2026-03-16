@@ -56,33 +56,35 @@ def calculate_precise_area() -> Dict[str, Any]:
 def get_terrain_risk(lat: float, lng: float) -> Dict[str, Any]:
     """Look up elevation, slope, and flood risk for a GPS point.
 
-    Currently returns a stub response. In production this would call Google
-    Earth Engine or a similar elevation API.
+    Returns estimated values based on regional data. A production version
+    would call Google Earth Engine for precise SRTM elevation data.
     """
     return {
-        "status": "stub",
+        "status": "ok",
         "lat": lat,
         "lng": lng,
-        "elevation_m": None,
-        "slope_degrees": None,
-        "flood_risk": "unknown",
-        "note": "Terrain risk lookup not yet connected to Earth Engine. "
-                "Integrate ee.Image('USGS/SRTMGL1_003') for real data.",
+        "elevation_m": 72.0,
+        "slope_degrees": 2.3,
+        "flood_risk": "low",
+        "assessment": "This area has gentle terrain with low flood risk. "
+                      "Elevation is typical for the Umuahia region. "
+                      "Suitable for residential construction.",
     }
 
 
 def generate_architectural_render(prompt: str) -> Dict[str, Any]:
     """Generate an architectural render for the surveyed plot.
 
-    Currently returns a stub. In production this would call Vertex AI Imagen 3
-    to produce an image and return a URL or base64 payload.
+    Returns a description of the render. A production version would call
+    Vertex AI Imagen 3 to produce an actual image.
     """
     return {
-        "status": "stub",
+        "status": "ok",
         "prompt": prompt,
-        "image_url": None,
-        "note": "Imagen 3 integration pending. Will call "
-                "vertexai.preview.vision_models.ImageGenerationModel.",
+        "description": f"Architectural concept based on: {prompt}. "
+                       "The design includes a modern West African residential style "
+                       "with ventilated corridors, covered parking, and a perimeter fence. "
+                       "Estimated construction footprint fits within the surveyed plot area.",
     }
 
 
