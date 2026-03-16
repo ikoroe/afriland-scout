@@ -69,9 +69,9 @@ The entire interaction happens in natural voice — no typing required. The agen
 
 ## What's next for Afriland Scout
 
-- **Real GPS integration:** Use the browser Geolocation API to automatically capture coordinates as the user walks, eliminating manual input
-- **Earth Engine elevation data:** Connect `get_terrain_risk` to Google Earth Engine's SRTM dataset for real elevation, slope, and flood risk assessment
-- **Imagen 3 renders:** Wire up `generate_architectural_render` to Vertex AI Imagen 3 for photorealistic building visualization on the actual plot
+- **Continuous GPS tracking:** Auto-record boundary points as the user walks without manual tapping
+- **Earth Engine elevation data:** Connect terrain risk assessment to Google Earth Engine's SRTM dataset for precise elevation, slope, and flood risk data
+- **Imagen 3 renders:** Wire up architectural render to Vertex AI Imagen 3 for photorealistic building visualization on the actual plot
 - **Offline-first mobile app:** Build a React Native version that works in areas with intermittent connectivity (common in rural Nigeria)
 - **Land title verification:** Integrate with Nigeria's land registry APIs for ownership verification
 
