@@ -90,6 +90,7 @@ async def _forward_client_to_gemini(websocket: WebSocket, live_session: Any) -> 
             if msg_type == "control":
                 text = message.get("text")
                 if isinstance(text, str) and text.strip():
+                    logger.info("Sending text to Gemini: %s", text.strip()[:80])
                     await live_session.send_client_content(
                         turns=genai_types.Content(
                             role="user",
@@ -136,9 +137,10 @@ async def _forward_client_to_gemini(websocket: WebSocket, live_session: Any) -> 
 async def _forward_gemini_to_client(websocket: WebSocket, live_session: Any) -> None:
     """Stream Gemini Live responses to the client as JSON."""
     try:
-        async for msg in live_session.receive():
-            payload = _serialize_event(msg)
-            await websocket.send_json(payload)
+        while True:
+            async for msg in live_session.receive():
+                payload = _serialize_event(msg)
+                await websocket.send_json(payload)
     except WebSocketDisconnect:
         return
     except Exception as e:
