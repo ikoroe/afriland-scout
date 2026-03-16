@@ -216,11 +216,12 @@ export default function SurveyorDashboard() {
           body: JSON.stringify({ lat, lng }),
         }).catch(() => {});
 
+        setConversation((prev) => [...prev, { role: "user", content: `📍 GPS Point #${gpsPoints.length + 1}: ${lat}, ${lng} (±${accuracy}m)` }]);
+
         const ws = wsRef.current;
         if (ws?.readyState === WebSocket.OPEN) {
           const text = `I just recorded boundary point #${gpsPoints.length + 1} at GPS coordinates ${lat}, ${lng} (accuracy ±${accuracy}m). Please acknowledge this point.`;
           ws.send(JSON.stringify({ type: "control", text }));
-          setConversation((prev) => [...prev, { role: "user", content: `📍 GPS Point #${gpsPoints.length + 1}: ${lat}, ${lng} (±${accuracy}m)` }]);
           appendEvent("[gps] " + text);
         }
       },
@@ -467,8 +468,7 @@ export default function SurveyorDashboard() {
             <button
               type="button"
               onClick={recordGps}
-              disabled={status !== "connected"}
-              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500 disabled:opacity-50"
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
             >
               📍 Record GPS Point
             </button>
